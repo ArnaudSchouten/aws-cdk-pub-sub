@@ -1,10 +1,11 @@
 import { Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
+import * as cdk from 'aws-cdk-lib';
 import { Code, Runtime } from 'aws-cdk-lib/aws-lambda';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 import { TopicSubscriber } from './TopicSubcriber';
 
-export interface PubSubStackProperties extends StackProps {  
+export interface PubSubStackProperties extends StackProps {
 }
 
 export class PubSubStack extends Stack {
@@ -12,7 +13,13 @@ export class PubSubStack extends Stack {
   constructor(scope: Construct, id: string, props?: PubSubStackProperties) {
     super(scope, id, props);
 
-    // create topic and dql
+    const emailParam = new cdk.CfnParameter(this, "email", {
+      type: 'String',
+      description: "Dit is environment parameter",
+      allowedPattern: '[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
+    });
+
+    // create topic and DLQ
     const ts = new TopicSubscriber(this, "TopicSubscriber", {
       topicName: "MyTopic",
       topicDLQName: "MyTopicDLQ",
@@ -46,7 +53,7 @@ export class PubSubStack extends Stack {
     // });
 
     //subscriber - 1 - email
-    ts.addEmailSubscriber('arnaud.schouten@gmail.com', {
+    ts.addEmailSubscriber(emailParam.valueAsString, {
       deadLetterQueue: ts.getDLQ()
     });
 

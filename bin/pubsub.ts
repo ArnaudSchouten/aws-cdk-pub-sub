@@ -4,6 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import { PubSubStack } from '../lib/pubsub-stack';
 
 const app = new cdk.App();
+
 new PubSubStack(app, 'PubSubStack', {
   env: {
     region: process.env.CDK_DEFAULT_REGION,
