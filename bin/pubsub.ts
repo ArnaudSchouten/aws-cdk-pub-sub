@@ -14,7 +14,6 @@ new PubSubStack(app, 'PubSubStack', {
     region: process.env.CDK_DEFAULT_REGION,
     account: process.env.CDK_DEFAULT_ACCOUNT
   },
-  description: 'Publish an subscribe stack',
   stackName: 'PubSubStack',
   tags: { 'owner': 'arnaud', 'creator': 'arnaud' },
   synthesizer: new cdk.DefaultStackSynthesizer({
