@@ -1,4 +1,6 @@
-*.js
+lib/*.js
+bin/*.js
+lambda/luxon
 !jest.config.js
 *.d.ts
 node_modules
