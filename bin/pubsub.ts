@@ -6,9 +6,6 @@ import { PubSubStack } from '../lib/pubsub-stack';
 const app = new cdk.App();
 
 new PubSubStack(app, 'PubSubStack', {
-  publisher1Active: true,
-  publisher2Active: true,
-  publisher3Active: true,
   description: 'Publish and subscribe stack',
   env: {
     region: process.env.CDK_DEFAULT_REGION,
