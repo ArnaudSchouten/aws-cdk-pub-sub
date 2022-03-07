@@ -6,20 +6,21 @@ import { Construct } from 'constructs';
 import { TopicSubscriber } from './TopicSubcriber';
 
 export interface PubSubStackProperties extends StackProps {
-  publisher1Active: boolean,
-  publisher2Active: boolean,
-  publisher3Active: boolean
 }
 
 export class PubSubStack extends Stack {
 
   constructor(scope: Construct, id: string, props?: PubSubStackProperties) {
     super(scope, id, props);
+    
+    const publisher1Active: boolean = this.node.tryGetContext('publisher1Active') === 'true';
+    const publisher2Active: boolean = this.node.tryGetContext('publisher2Active') === 'true';
+    const publisher3Active: boolean = this.node.tryGetContext('publisher3Active') === 'true';
 
-    // 
+    // email parameter
     const emailParam = new cdk.CfnParameter(this, "email", {
       type: 'String',
-      description: "Dit is environment parameter",
+      description: "subscription email subscriber",
       allowedPattern: '[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
     });
 
@@ -30,7 +31,7 @@ export class PubSubStack extends Stack {
     });
 
     //publisher - 1
-    if (props?.publisher1Active) {
+    if (publisher1Active) {
       ts.addLambdaPublisher('MyPublishFunctionOne', {
         runtime: Runtime.NODEJS_14_X,
         code: Code.fromAsset('lambda'),
@@ -41,7 +42,7 @@ export class PubSubStack extends Stack {
     }
 
     // publisher - 2 
-    if (props?.publisher2Active) {
+    if (publisher2Active) {
       ts.addLambdaPublisher('MyPublishFunctionTwo', {
         runtime: Runtime.NODEJS_14_X,
         code: Code.fromAsset('lambda'),
@@ -52,7 +53,7 @@ export class PubSubStack extends Stack {
     }
 
     // publisher - 3
-    if (props?.publisher3Active) {
+    if (publisher3Active) {
       ts.addLambdaPublisher('MyPublishFunctionError', {
         runtime: Runtime.NODEJS_14_X,
         code: Code.fromAsset('lambda'),
