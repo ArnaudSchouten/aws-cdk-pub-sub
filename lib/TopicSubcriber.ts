@@ -54,6 +54,8 @@ export class TopicSubscriber extends Construct {
     }
 
     addSqsSubscriber(queueName: string, queueProps?: sqs.QueueProps, subscribtionProps?: SqsSubscriptionProps) {
+        
+        queueProps?.deadLetterQueue
         // create queue
         const sqsQueue = new sqs.Queue(this, queueName, queueProps);
         // add subscription

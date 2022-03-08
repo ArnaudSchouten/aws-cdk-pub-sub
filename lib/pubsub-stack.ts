@@ -17,6 +17,10 @@ export class PubSubStack extends Stack {
     const publisher2Active: boolean = this.node.tryGetContext('publisher2Active') === 'true';
     const publisher3Active: boolean = this.node.tryGetContext('publisher3Active') === 'true';
 
+    console.log('publisher1Active: ', publisher1Active);
+    console.log('publisher2Active: ', publisher2Active);
+    console.log('publisher3Active: ', publisher3Active);
+
     // email parameter
     const emailParam = new cdk.CfnParameter(this, "email", {
       type: 'String',
