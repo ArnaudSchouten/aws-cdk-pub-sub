@@ -4,6 +4,7 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import { EmailSubscription, EmailSubscriptionProps, LambdaSubscription, LambdaSubscriptionProps, SqsSubscription, SqsSubscriptionProps } from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { Construct } from "constructs";
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 
 export interface TopicSubscriberProps {
     topicName: string,
@@ -53,13 +54,14 @@ export class TopicSubscriber extends Construct {
         this.topic.addSubscription(new LambdaSubscription(functionHandler, subscribtionProps));
     }
 
-    addSqsSubscriber(queueName: string, queueProps?: sqs.QueueProps, subscribtionProps?: SqsSubscriptionProps) {
-        
-        queueProps?.deadLetterQueue
+    addSqsSubscriber(queueName: string, queueProps?: sqs.QueueProps, subscriptionProps?: SqsSubscriptionProps) : lambda.IEventSource {        
         // create queue
         const sqsQueue = new sqs.Queue(this, queueName, queueProps);
         // add subscription
-        this.topic.addSubscription(new SqsSubscription(sqsQueue, subscribtionProps));
+        this.topic.addSubscription(new SqsSubscription(sqsQueue, subscriptionProps));
+        
+        return new lambdaEventSources.SqsEventSource(sqsQueue);
+        
     }
 
     // create topic

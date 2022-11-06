@@ -1,9 +1,13 @@
 import { Duration, RemovalPolicy, Stack, StackProps } from 'aws-cdk-lib';
 import * as cdk from 'aws-cdk-lib';
-import { Code, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, Runtime, Function } from 'aws-cdk-lib/aws-lambda';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import { Construct } from 'constructs';
 import { TopicSubscriber } from './TopicSubcriber';
+
+function envSpecificName(constructType: string, envcode: string, appcode: string, name: string): string {
+  return `${constructType}-nl-m2b-${envcode}-${appcode}-${name?.toLowerCase()}`;
+}
 
 export interface PubSubStackProperties extends StackProps {
 }
@@ -12,14 +16,9 @@ export class PubSubStack extends Stack {
 
   constructor(scope: Construct, id: string, props?: PubSubStackProperties) {
     super(scope, id, props);
-    
-    const publisher1Active: boolean = this.node.tryGetContext('publisher1Active') === 'true';
-    const publisher2Active: boolean = this.node.tryGetContext('publisher2Active') === 'true';
-    const publisher3Active: boolean = this.node.tryGetContext('publisher3Active') === 'true';
 
-    console.log('publisher1Active: ', publisher1Active);
-    console.log('publisher2Active: ', publisher2Active);
-    console.log('publisher3Active: ', publisher3Active);
+    const envcode = this.tags.tagValues()["envcode"];
+    const appcode = this.tags.tagValues()["appcode"];
 
     // email parameter
     const emailParam = new cdk.CfnParameter(this, "email", {
@@ -35,37 +34,32 @@ export class PubSubStack extends Stack {
     });
 
     //publisher - 1
-    if (publisher1Active) {
-      ts.addLambdaPublisher('MyPublishFunctionOne', {
-        runtime: Runtime.NODEJS_14_X,
-        code: Code.fromAsset('lambda'),
-        handler: 'publisherOne.handler',
-        functionName: 'MyPublishFunctionOne',
-        description: 'publish a msg to the topic and set email attribute',
-      });
-    }
+    ts.addLambdaPublisher('MyPublishFunctionOne', {
+      runtime: Runtime.NODEJS_14_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'publisherOne.handler',
+      functionName: envSpecificName("lambda", envcode, appcode, "publish-one"),
+      description: 'publish a msg to the topic and set email attribute',
+    });
+
 
     // publisher - 2 
-    if (publisher2Active) {
-      ts.addLambdaPublisher('MyPublishFunctionTwo', {
-        runtime: Runtime.NODEJS_14_X,
-        code: Code.fromAsset('lambda'),
-        handler: 'publisherTwo.handler',
-        functionName: 'MyPublishFunctionTwo',
-        description: 'publish a msg to the topic and set sqs attribute',
-      });
-    }
+    ts.addLambdaPublisher('MyPublishFunctionTwo', {
+      runtime: Runtime.NODEJS_14_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'publisherTwo.handler',
+      functionName: envSpecificName("lambda", envcode, appcode, "publish-two"),
+      description: 'publish a msg to the topic and set sqs attribute'
+    });
 
     // publisher - 3
-    if (publisher3Active) {
-      ts.addLambdaPublisher('MyPublishFunctionError', {
-        runtime: Runtime.NODEJS_14_X,
-        code: Code.fromAsset('lambda'),
-        handler: 'publisherError.handler',
-        functionName: 'MyPublishFunctionError',
-        description: 'publish a msg to the topic which results in an error',
-      });
-    }
+    ts.addLambdaPublisher('MyPublishFunctionError', {
+      runtime: Runtime.NODEJS_14_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'publisherError.handler',
+      functionName: envSpecificName("lambda", envcode, appcode, "publish-three"),
+      description: 'publish a msg to the topic which results in an error',
+    });
 
     // subscriber - 1 - always email
     ts.addEmailSubscriber(emailParam.valueAsString, {
@@ -77,7 +71,7 @@ export class PubSubStack extends Stack {
       runtime: Runtime.NODEJS_14_X,
       code: Code.fromAsset('lambda'),
       handler: 'subscriberOne.handler',
-      functionName: 'MySubscribeFunctionOne',
+      functionName: envSpecificName("lambda", envcode, appcode, "subscribe-one"),
       description: 'subscribe to the topic',
     }, {
       filterPolicy: {
@@ -93,7 +87,7 @@ export class PubSubStack extends Stack {
       runtime: Runtime.NODEJS_14_X,
       code: Code.fromAsset('lambda'),
       handler: 'subscribeError.handler',
-      functionName: 'MySubscribeFunctionError',
+      functionName: envSpecificName("lambda", envcode, appcode, "subscribe-two"),
       description: 'subscribe to the topic',
     }, {
       filterPolicy: {
@@ -105,18 +99,28 @@ export class PubSubStack extends Stack {
     });
 
     // subscribtion - 4 sqs
-    ts.addSqsSubscriber('MySqsQueue', {
-      queueName: 'MySqsQueue',
-      removalPolicy: RemovalPolicy.DESTROY,
-      retentionPeriod: Duration.days(1),
-      deliveryDelay: Duration.seconds(0)
-    }, {
-      filterPolicy: {
-        EventType: sns.SubscriptionFilter.stringFilter({
-          allowlist: ["SendToSqs"]
-        })
-      },
-      deadLetterQueue: ts.getDLQ()
+    const eventSource =
+      ts.addSqsSubscriber('MySqsQueue', {
+        queueName: envSpecificName("sqs", envcode, appcode, "subscribe-three"),
+        removalPolicy: RemovalPolicy.DESTROY,
+        retentionPeriod: Duration.days(1),
+        deliveryDelay: Duration.seconds(0)
+      }, {
+        filterPolicy: {
+          EventType: sns.SubscriptionFilter.stringFilter({
+            allowlist: ["SendToSqs"]
+          })
+        },
+        deadLetterQueue: ts.getDLQ()
+      });
+
+    const lambdaSqsProcessor = new Function(this, 'SqsMessageProcessor', {
+      runtime: Runtime.NODEJS_14_X,
+      code: Code.fromAsset('lambda'),
+      handler: 'sqsMessageProcessor.handler',
+      functionName: envSpecificName("lambda", envcode, appcode, "sqs-message-processor")
     });
+
+    lambdaSqsProcessor.addEventSource(eventSource);
   }
 }

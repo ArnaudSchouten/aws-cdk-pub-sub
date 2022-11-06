@@ -4,7 +4,7 @@ const {DateTime} = require('luxon');
 
 exports.handler = function (event, context) {
     // alter payload testje
-    event.arnaud = "krijgt geen email";
+    event.arnaud = "krijgt altijd email";
     event.dateCreated = DateTime.now().setZone('Europe/Amsterdam').toISO({includeOffset: false});
 
     // convert payload to string
