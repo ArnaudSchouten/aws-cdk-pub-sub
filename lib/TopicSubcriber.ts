@@ -34,13 +34,14 @@ export class TopicSubscriber extends Construct {
         return this.dlq;
     }
 
-    addLambdaPublisher(functionName: string, props: lambda.FunctionProps): void {
+    addLambdaPublisher(functionName: string, props: lambda.FunctionProps): lambda.IFunction {
         // create lambda       
         const functionHandler = new lambda.Function(this, functionName, props);
         // grant publish on topic
         this.topic.grantPublish(functionHandler);
         // add evironment variable to lambda's, the arn of the topic
         functionHandler.addEnvironment('TOPIC_ARN', this.topic.topicArn);
+        return functionHandler;
     }
 
     addEmailSubscriber(email: string, props?: EmailSubscriptionProps): void {
@@ -54,14 +55,13 @@ export class TopicSubscriber extends Construct {
         this.topic.addSubscription(new LambdaSubscription(functionHandler, subscribtionProps));
     }
 
-    addSqsSubscriber(queueName: string, queueProps?: sqs.QueueProps, subscriptionProps?: SqsSubscriptionProps) : lambda.IEventSource {        
+
+    addSqsSubscriber(queueName: string, queueProps?: sqs.QueueProps, subscriptionProps?: SqsSubscriptionProps): lambda.IEventSource {
         // create queue
         const sqsQueue = new sqs.Queue(this, queueName, queueProps);
         // add subscription
         this.topic.addSubscription(new SqsSubscription(sqsQueue, subscriptionProps));
-        
         return new lambdaEventSources.SqsEventSource(sqsQueue);
-        
     }
 
     // create topic
